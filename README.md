@@ -35,7 +35,3 @@ Application should be up and running: backend `127.0.0.1:9090`, postgres `127.0.
   ```bash
   docker compose down
   ```
-
-## Postman Collection
-
-- [Postman](https://documenter.getpostman.com/view/15717582/2sAYBbdUAZ)
