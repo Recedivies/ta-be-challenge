@@ -1,12 +1,17 @@
 package controllers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/Recedivies/ta-be-challenge/db"
+)
+
+const (
+	WITHDRAWAL string = "WITHDRAWAL"
+	TOPUP      string = "TOPUP"
 )
 
 type UserRequest struct {
@@ -27,7 +32,7 @@ func TopUpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := ProcessTransaction(req.UserID, "TOPUP", req.Amount)
+	err := ProcessTransaction(req.UserID, TOPUP, req.Amount)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -53,7 +58,7 @@ func WithdrawalHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := ProcessTransaction(req.UserID, "WITHDRAWAL", req.Amount)
+	err := ProcessTransaction(req.UserID, WITHDRAWAL, req.Amount)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -73,27 +78,22 @@ func ProcessTransaction(userID int64, transactionType string, amount float64) er
 	}
 	defer tx.Rollback()
 
-	var currentBalance float64
-	err = tx.QueryRow("SELECT balance FROM users WHERE id = $1 FOR UPDATE", userID).Scan(&currentBalance)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return errors.New("user not found")
-		}
-		return errors.New("failed to fetch user balance")
+	adjustment := amount
+	if transactionType == WITHDRAWAL {
+		adjustment = -amount
 	}
 
-	if transactionType == "WITHDRAWAL" {
-		if currentBalance < amount {
+	_, err = tx.Exec(`
+		UPDATE users
+		SET balance = balance + $1
+		WHERE id = $2
+	`, adjustment, userID)
+	if err != nil {
+		if strings.Contains(err.Error(), "check constraint") {
 			return errors.New("insufficient balance")
 		}
-		currentBalance -= amount
-	} else if transactionType == "TOPUP" {
-		currentBalance += amount
-	}
 
-	_, err = tx.Exec("UPDATE users SET balance = $1 WHERE id = $2", currentBalance, userID)
-	if err != nil {
-		return errors.New("failed to update user balance")
+		return errors.New("failed to update balance")
 	}
 
 	_, err = tx.Exec(`

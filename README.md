@@ -30,6 +30,12 @@ Make sure Docker Engine is running.
 
 Application should be up and running: backend `127.0.0.1:9090`, postgres `127.0.0.1:5432`
 
+- To run the test cases
+
+  ```bash
+  go test -v
+  ```
+
 - To stop and remove containers
 
   ```bash

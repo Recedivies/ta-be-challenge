@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	db.Connect()
+	db.Connect("postgres")
 
 	log.Println("Dropping and reinitializing the database...")
 	db.DropDB()

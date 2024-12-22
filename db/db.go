@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	_ "github.com/lib/pq"
@@ -9,13 +10,16 @@ import (
 
 var DB *sql.DB
 
-func Connect() {
+func Connect(host string) {
 	var err error
-	connStr := "postgresql://root:secret@postgres:5432/finance?sslmode=disable"
+	connStr := fmt.Sprintf("postgresql://root:secret@%s:5432/finance?sslmode=disable", host)
 	DB, err = sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
+
+	DB.SetMaxOpenConns(25)
+	DB.SetMaxIdleConns(5)
 
 	if err := DB.Ping(); err != nil {
 		log.Fatalf("Failed to ping the database: %v", err)
@@ -28,7 +32,7 @@ func InitDB() {
 		CREATE TABLE IF NOT EXISTS users (
 			id SERIAL PRIMARY KEY,
 			name VARCHAR(100) NOT NULL,
-			balance NUMERIC(20, 2) NOT NULL DEFAULT 0
+			balance NUMERIC(20, 2) CHECK (balance >= 0) NOT NULL DEFAULT 0
 		);
 	`
 
@@ -37,7 +41,7 @@ func InitDB() {
 			id SERIAL PRIMARY KEY,
 			user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			transaction_type VARCHAR(20) NOT NULL,
-			amount NUMERIC(20, 2) NOT NULL,
+			amount NUMERIC(20, 2) NOT NULL CHECK (amount >= 0),
 			status VARCHAR(20) NOT NULL,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
