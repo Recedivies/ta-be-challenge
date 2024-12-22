@@ -8,6 +8,7 @@ This is a simple wallet application that allows users to manage their wallet bal
 
 ### Install tools
 
+- [Golang](https://golang.org/)
 - [Docker](https://www.docker.com/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 
